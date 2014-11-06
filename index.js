@@ -702,6 +702,9 @@ function toPouch(db, opts) {
   }
 }
 
+exports.panic = function() {
+  console.log("Panic!");
+};
 
 exports.replicate = replicateWrapper;
 function replicateWrapper(src, target, opts, callback) {
@@ -732,4 +735,9 @@ function replicateWrapper(src, target, opts, callback) {
     opts.complete(err);
   });
   return replicateRet;
+}
+
+/* istanbul ignore next */
+if (typeof window !== 'undefined' && window.PouchDB) {
+  window.PouchDB.plugin(exports);
 }
