@@ -35,7 +35,8 @@
     "lie": "^2.6.0",
     "inherits": "~2.0.1",
     "argsarray": "0.0.1",
-    "es3ify": "^0.1.3"
+    "es3ify": "^0.1.3",
+    "pouchdb-extend": "^0.1.2"
   },
   "devDependencies": {
     "bluebird": "^1.0.7",

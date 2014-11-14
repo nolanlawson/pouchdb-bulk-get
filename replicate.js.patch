@@ -1,0 +1,92 @@
+--- ../pouchdb/lib/replicate.js	2014-11-13 16:23:21.507090534 -0500
++++ replicate.js	2014-11-13 16:44:42.274301983 -0500
+@@ -1,8 +1,19 @@
++/**
++ * replicate.js modded to use _bulk_get
++ */
++
+ 'use strict';
+ 
+-var utils = require('./utils');
++var extend = require('pouchdb-extend');
++var utils = require('../pouchdb/lib/utils');
+ var EE = require('events').EventEmitter;
+-var Checkpointer = require('./checkpointer');
++
++utils.clone = function (obj) {
++  return extend(true, {}, obj);
++};
++
++var EE = require('events').EventEmitter;
++var Checkpointer = require('../pouchdb/lib/checkpointer');
+ var MAX_SIMULTANEOUS_REVS = 50;
+ 
+ function randomNumber(min, max) {
+@@ -239,9 +250,66 @@
+     }));
+   }
+ 
++  /**
++   * Fetch all the docs in currentBatch at once.
++   * Should only be called if src.getBulk exists.
++   */
++  function getAllDocsBulk() {
++    var parameters = [],
++        diffs = currentBatch.diffs,
++        ids = Object.keys(diffs),
++        id,
++        allMissing,
++        missingBatches,
++        missingBatch;
++
++    for(var idx = 0; idx < ids.length; idx++) {
++      id = ids[idx];
++      allMissing = diffs[id].missing;
++
++      // avoid url too long error by batching; this process still does
++      // individual GET requests in the back end.
++      missingBatches = [];
++      for (var i = 0; i < allMissing.length; i += MAX_SIMULTANEOUS_REVS) {
++        missingBatches.push(allMissing.slice(i, Math.min(allMissing.length,
++          i + MAX_SIMULTANEOUS_REVS)));
++      }
++
++      for (var i = 0; i < missingBatches.length; i++) {
++        missingBatch = missingBatches[i];
++        for (var j = 0; j < missingBatch.length; j++) {
++          parameters.push({id: id, open_revs: missingBatch,
++                           revs: true, attachments: true});
++        }
++      }
++    }
++
++    return src.getBulk(parameters).then(function (docIds) {
++        // Would it be better to callback one doc at a time?
++        docIds.forEach(function(docs) {
++          docs.forEach(function (doc) {
++            if (returnValue.cancelled) {
++              return completeReplication();
++            }
++            if (doc.ok) {
++              result.docs_read++;
++              currentBatch.pendingRevs++;
++              currentBatch.docs.push(doc.ok);
++              delete diffs[doc.ok._id];
++            }
++          });
++        });
++      });
++  }
++  
++
+   function getAllDocs() {
+     if (Object.keys(currentBatch.diffs).length > 0) {
+-      return getNextDoc().then(getAllDocs);
++      if(src.getBulk) {
++        return getAllDocsBulk();
++      } else {
++        return getNextDoc().then(getAllDocs);
++      }
+     } else {
+       return utils.Promise.resolve();
+     }
