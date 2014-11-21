@@ -1,7 +1,9 @@
 PouchDB `_bulk_get` replication patch
 =====
 
-This plugin adds support for an experimental `_bulk_get` CouchDB endpoint (an nginx+lua implementation is available for the server). By adding the ability to fetch many documents in a single request during replication, speed is increased.
+This plugin adds support for an experimental `_bulk_get` CouchDB endpoint. By adding the ability to fetch many documents in a single request during replication, speed is increased. If `_bulk_get` is not found then PouchDB will fall back to its regular algorithm.
+
+This repository contains an nginx+lua shim but a CouchDB patch is available at https://github.com/dholth/couchdb/tree/1.6.x
 
 Building
 ----

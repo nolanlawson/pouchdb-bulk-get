@@ -303,10 +303,14 @@ function replicate(repId, src, target, opts, returnValue, result) {
   }
   
 
+  var bulkFailed = false;
   function getAllDocs() {
     if (Object.keys(currentBatch.diffs).length > 0) {
-      if(src.getBulk) {
-        return getAllDocsBulk();
+      if(src.getBulk && !bulkFailed) {
+        return getAllDocsBulk().catch(function(e) {
+          bulkFailed = true;
+          return getAllDocs();
+        });
       } else {
         return getNextDoc().then(getAllDocs);
       }

@@ -12,12 +12,13 @@ for k, v in pairs(query_args) do
     query_args[k] = cjson.decode(v)
 end
 
-ngx.header.content_type = 'application/json'
+ngx.header.content_type = 'application/json; charset=utf-8'
 
 local json
 
 local status, msg = pcall(function() json = cjson.decode(post_args) end)
 if not status then
+    -- also set error status
     ngx.say(cjson.encode({error="could not decode request body as json"}))
     return
 end
